@@ -1,0 +1,11 @@
+streamlit
+requests
+python-dotenv
+langchain
+langgraph
+langchain-google-vertexai
+google-cloud-aiplatform
+pdfplumber
+PyMuPDF
+pandas
+schedule
