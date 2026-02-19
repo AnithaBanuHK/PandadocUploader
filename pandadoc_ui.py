@@ -287,6 +287,9 @@ if st.button("Process Document", type="primary", disabled=not uploaded_file or n
                 upload_result = final_state.get("upload_status", {})
                 if upload_result.get("success"):
                     upload_status.text("✅ Uploaded")
+                    doc_id = upload_result.get("document_id", "N/A")
+                    st.info(f"📋 **Document ID:** `{doc_id}`")
+                    st.session_state["last_document_id"] = doc_id
                 elif upload_result.get("error"):
                     upload_status.text("❌ Failed")
                     error_msg = upload_result.get("error", "Unknown error")
@@ -323,6 +326,35 @@ if st.button("Process Document", type="primary", disabled=not uploaded_file or n
                 extraction_status.text("❌ Error")
                 validation_status.text("❌ Error")
                 upload_status.text("❌ Error")
+
+# --- Delete Document Section ---
+st.divider()
+st.subheader("Delete a Document")
+
+delete_col1, delete_col2 = st.columns([3, 1])
+with delete_col1:
+    delete_doc_id = st.text_input(
+        "Document ID",
+        value=st.session_state.get("last_document_id", ""),
+        placeholder="Enter the PandaDoc document ID",
+        key="delete_doc_id_input"
+    )
+with delete_col2:
+    st.markdown("<br>", unsafe_allow_html=True)
+    delete_clicked = st.button("Delete Document", type="primary", disabled=not delete_doc_id)
+
+if delete_clicked and delete_doc_id:
+    import requests
+    with st.spinner("Deleting document..."):
+        try:
+            headers = {"Authorization": f"API-Key {API_KEY}"}
+            response = requests.delete(f"{API_URL}/{delete_doc_id}", headers=headers)
+            if response.status_code == 204:
+                st.success(f"Document `{delete_doc_id}` deleted successfully!")
+            else:
+                st.error(f"Failed to delete document: {response.status_code} - {response.text}")
+        except Exception as e:
+            st.error(f"Error deleting document: {str(e)}")
 
 # Add sidebar with instructions
 with st.sidebar:
