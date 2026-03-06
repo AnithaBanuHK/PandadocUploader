@@ -36,7 +36,7 @@ class FollowupState(TypedDict):
     pandadoc_statuses: dict            # Current status from PandaDoc API
     filtered_documents: list[dict]     # Documents that need follow-up TODAY
     drafted_emails: list[dict]         # AI-drafted email content
-    sent_teams: list[dict]             # Results of Teams notifications
+    sent_teams: list[dict]             # Results of Teams direct messages
     sent_emails: list[dict]            # Results of email sending
     error: str | None
 
@@ -256,13 +256,13 @@ Body:
     return state
 
 
-# Agent 5: Send brief Teams channel notifications
+# Agent 5: Send direct Teams messages to individual unsigned recipients
 def send_teams_node(state: FollowupState) -> FollowupState:
-    """Send brief follow-up reminders to Teams channel"""
-    print("\n📢 Agent 5: Sending Teams channel notifications...")
+    """Send personalized Teams direct messages to each unsigned recipient via Graph API"""
+    print("\n📢 Agent 5: Sending Teams direct messages via Graph API...")
 
     if not state.get("filtered_documents"):
-        print("  ℹ️ No documents need follow-up - skipping Teams notifications")
+        print("  ℹ️ No documents need follow-up - skipping Teams messages")
         state["sent_teams"] = []
         return state
 
@@ -277,23 +277,27 @@ def send_teams_node(state: FollowupState) -> FollowupState:
             if not recipient_name:
                 recipient_name = unsigned_recipient.get("email", "Unknown").split("@")[0]
 
+            recipient_email = unsigned_recipient.get("email")
+
             success = send_teams_message(
                 document_name=doc["document_name"],
                 recipient_name=recipient_name,
                 days_pending=days_pending,
-                document_id=doc["document_id"]
+                document_id=doc["document_id"],
+                recipient_email=recipient_email
             )
 
             sent_results.append({
                 "document_id": doc["document_id"],
                 "recipient": recipient_name,
+                "recipient_email": recipient_email,
                 "success": success
             })
 
     state["sent_teams"] = sent_results
 
     successful = sum(1 for r in sent_results if r["success"])
-    print(f"\n✅ Sent {successful}/{len(sent_results)} Teams notification(s)")
+    print(f"\n✅ Sent {successful}/{len(sent_results)} Teams direct message(s)")
 
     return state
 
@@ -429,7 +433,7 @@ def run_followup_workflow():
         print(f"  - Pending documents checked: {len(final_state.get('pending_documents', []))}")
         print(f"  - Documents needing follow-up: {len(final_state.get('filtered_documents', []))}")
         print(f"  - Emails drafted: {len(final_state.get('drafted_emails', []))}")
-        print(f"  - Teams notifications sent: {teams_count}")
+        print(f"  - Teams DMs sent: {teams_count}")
         print(f"  - Emails sent successfully: {email_count}")
 
         if final_state.get("error"):
